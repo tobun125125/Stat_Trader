@@ -1,40 +1,34 @@
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
-import { DashboardClient } from "./DashboardClient";
-import { format } from "date-fns";
+import { NewDashboardClient } from "@/components/dashboard/NewDashboardClient";
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
-
-export default async function Page(props: { searchParams: SearchParams }) {
-  const searchParams = await props.searchParams;
+export default async function DashboardPage() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Determine the target month from search params or use current date
-  // e.g. "2026-05"
-  const monthParam = typeof searchParams.month === 'string' ? searchParams.month : undefined;
-  const targetMonthStr = monthParam || format(new Date(), "yyyy-MM");
-  const initialDate = new Date(`${targetMonthStr}-01T12:00:00Z`); // use mid-day UTC to avoid timezone shifts
+  const currentYearStr = new Date().getFullYear().toString();
 
-  // Fetch monthly stats for the specific month
-  const { data: monthlyStats } = await supabase
-    .from("monthly_trading_stats")
-    .select("*")
-    .eq("trade_month", targetMonthStr)
-    .single();
-
-  // Fetch daily stats for the given month (using LIKE 'YYYY-MM-%')
-  const { data: dailyStats } = await supabase
+  // Fetch daily stats for the current year (for daily growth chart)
+  const { data: dailyStats, error: dailyError } = await supabase
     .from("daily_trading_stats")
     .select("*")
-    .like("trade_date", `${targetMonthStr}-%`)
+    .like("trade_date", `${currentYearStr}-%`)
     .order("trade_date", { ascending: true });
 
+  // Fetch all monthly stats (for monthly/yearly growth chart)
+  const { data: allMonthlyStats, error: monthlyError } = await supabase
+    .from("monthly_trading_stats")
+    .select("*")
+    .order("trade_month", { ascending: true });
+
+  // Log errors for debugging (errors are handled gracefully by passing empty arrays)
+  if (dailyError) console.error("Failed to fetch daily stats:", dailyError.message);
+  if (monthlyError) console.error("Failed to fetch monthly stats:", monthlyError.message);
+
   return (
-    <DashboardClient 
-      initialDate={initialDate} 
+    <NewDashboardClient 
       dailyStats={dailyStats || []} 
-      monthlyStats={monthlyStats || null} 
+      allMonthlyStats={allMonthlyStats || []} 
     />
   );
 }

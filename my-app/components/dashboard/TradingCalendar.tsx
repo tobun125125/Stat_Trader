@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { DailyTradingStat } from "@/types/supabase";
 import { 
   startOfMonth, 
@@ -30,6 +31,13 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+  // Fix #13: ใช้ Map สำหรับ O(1) lookup แทน .find() ที่เป็น O(n) ต่อวัน
+  const statsMap = useMemo(() => {
+    const map = new Map<string, DailyTradingStat>();
+    dailyStats.forEach(stat => map.set(stat.trade_date, stat));
+    return map;
+  }, [dailyStats]);
+
   return (
     <div className="rounded-xl border bg-card shadow overflow-hidden">
       <div className="grid grid-cols-7 border-b bg-muted/50">
@@ -43,7 +51,7 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
       <div className="grid grid-cols-7 bg-background">
         {days.map((day, idx) => {
           const dateStr = format(day, "yyyy-MM-dd");
-          const stat = dailyStats.find(s => s.trade_date === dateStr);
+          const stat = statsMap.get(dateStr); // O(1) lookup
           const isCurrentMonth = isSameMonth(day, monthStart);
           const isCurrentDay = isToday(day);
           

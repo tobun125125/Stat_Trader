@@ -2,11 +2,22 @@ import importlib
 import MetaTrader5 as mt5
 from datetime import datetime
 import pandas as pd
+import os
 
-# 1. ข้อมูลสำหรับ Login MT5
-login_id = 463299905
-password = "@8Kobualove1234"
-server = "Exness-MT5Trial17"
+# โหลดค่าจากไฟล์ .env.local
+# pyrefly: ignore [missing-import]
+from dotenv import load_dotenv
+load_dotenv('.env.local')
+
+# 1. ข้อมูลสำหรับ Login MT5 (อ่านจาก .env.local)
+login_id = int(os.environ.get("MT5_LOGIN_ID", "0"))
+password = os.environ.get("MT5_PASSWORD", "")
+server = os.environ.get("MT5_SERVER", "")
+
+if not login_id or not password or not server:
+    print("❌ ไม่พบข้อมูล MT5 Login ในไฟล์ .env.local")
+    print("   กรุณาเพิ่ม MT5_LOGIN_ID, MT5_PASSWORD, MT5_SERVER")
+    quit()
 
 # 2. เริ่มต้นการเชื่อมต่อกับโปรแกรม MT5 ที่เปิดไว้
 print("กำลังเชื่อมต่อ MT5...")
@@ -23,15 +34,9 @@ if authorized:
     # ---------------------------------------------------------
     from datetime import timedelta
     from supabase import create_client, Client
-    import os
     import time
 
-    # ตั้งค่าเชื่อมต่อ Supabase
-    # pyrefly: ignore [missing-import]
-    from dotenv import load_dotenv
-
-    # โหลดค่าจากไฟล์ .env.local
-    load_dotenv('.env.local')
+    # ตั้งค่าเชื่อมต่อ Supabase (ค่า env ถูกโหลดจากด้านบนแล้ว)
 
     SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
     # ดึงค่า SERVICE ROLE KEY จาก .env.local (ต้องไปเพิ่มในไฟล์เอง)

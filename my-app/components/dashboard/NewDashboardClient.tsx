@@ -254,7 +254,10 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Net Profit"]}
+                  formatter={(value: any) => {
+                    const numValue = typeof value === 'number' ? value : 0;
+                    return [`$${numValue.toFixed(2)}`, "Net Profit"];
+                  }}
                 />
                 <Line 
                   type="linear" 
@@ -306,7 +309,10 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Cumulative Profit"]}
+                  formatter={(value: any) => {
+                    const numValue = typeof value === 'number' ? value : 0;
+                    return [`$${numValue.toFixed(2)}`, "Cumulative Profit"];
+                  }}
                   labelFormatter={(label) => `Date: ${label}`}
                 />
                 <Area 

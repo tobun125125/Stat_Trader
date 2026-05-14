@@ -130,13 +130,13 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
         
         {/* Header & Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-3xl font-bold tracking-tight">Performance Growth</h2>
-          <div className="flex items-center bg-background border rounded-md p-1 shadow-sm">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Performance Growth</h2>
+          <div className="flex items-center bg-background border rounded-md p-1 shadow-sm self-start sm:self-auto">
             {(["Daily", "Monthly", "Yearly"] as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-4 py-2 text-sm font-medium rounded-sm transition-colors ${
+                className={`px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-sm transition-colors ${
                   timeframe === tf 
                     ? "bg-primary text-primary-foreground shadow" 
                     : "text-muted-foreground hover:text-foreground"
@@ -149,15 +149,15 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
         </div>
 
         {/* Stats Cards — 5 cards showing Latest Period + Overall Stats */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-5">
           {/* Latest Profit */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2 relative overflow-hidden">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2 relative overflow-hidden col-span-2 sm:col-span-1">
             <div className="absolute top-0 right-0 p-2 bg-primary/10 text-primary text-[10px] font-bold rounded-bl-lg">LATEST</div>
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไร/ขาดทุน ({periodName})</h3>
+              <h3 className="tracking-tight text-xs md:text-sm font-medium text-muted-foreground">กำไร/ขาดทุน ({periodName})</h3>
               {isPositiveLatest ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
             </div>
-            <div className={`text-2xl font-bold ${isPositiveLatest ? 'text-green-500' : 'text-red-500'}`}>
+            <div className={`text-xl md:text-2xl font-bold ${isPositiveLatest ? 'text-green-500' : 'text-red-500'}`}>
               {latestStats ? `$${latestStats.profit.toFixed(2)}` : "$0.00"}
             </div>
             <p className="text-xs text-muted-foreground truncate" title={latestStats?.date}>
@@ -166,12 +166,12 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
           </div>
 
           {/* Latest Win Rate */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Win Rate ({periodName})</h3>
+              <h3 className="tracking-tight text-xs md:text-sm font-medium text-muted-foreground">Win Rate ({periodName})</h3>
               <Target className="h-4 w-4 text-blue-500" />
             </div>
-            <div className="text-2xl font-bold text-blue-500">
+            <div className="text-xl md:text-2xl font-bold text-blue-500">
               {latestStats ? `${latestStats.winRate.toFixed(2)}%` : "0.00%"}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -180,12 +180,12 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
           </div>
 
           {/* Latest Trades */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">จำนวนเทรด ({periodName})</h3>
+              <h3 className="tracking-tight text-xs md:text-sm font-medium text-muted-foreground">จำนวนเทรด ({periodName})</h3>
               <Activity className="h-4 w-4 text-purple-500" />
             </div>
-            <div className="text-2xl font-bold text-purple-500">
+            <div className="text-xl md:text-2xl font-bold text-purple-500">
               {latestStats?.trades || 0}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -194,12 +194,12 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
           </div>
 
           {/* Cumulative Profit (All Time) */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไรสะสมทั้งหมด (Total)</h3>
+              <h3 className="tracking-tight text-xs md:text-sm font-medium text-muted-foreground">กำไรสะสมทั้งหมด (Total)</h3>
               {isPositiveTotal ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
             </div>
-            <div className={`text-2xl font-bold ${isPositiveTotal ? 'text-green-500' : 'text-red-500'}`}>
+            <div className={`text-xl md:text-2xl font-bold ${isPositiveTotal ? 'text-green-500' : 'text-red-500'}`}>
               ${overallStats.totalProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -208,12 +208,12 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
           </div>
 
           {/* Avg Profit per Period */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไรเฉลี่ย/{periodName}</h3>
+              <h3 className="tracking-tight text-xs md:text-sm font-medium text-muted-foreground">กำไรเฉลี่ย/{periodName}</h3>
               {overallStats.avgProfit >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-rose-500" />}
             </div>
-            <div className={`text-2xl font-bold ${overallStats.avgProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            <div className={`text-xl md:text-2xl font-bold ${overallStats.avgProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               ${overallStats.avgProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -224,31 +224,31 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
 
 
         {/* Area Chart (Individual PnL) */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg">Profit / Loss ({timeframe})</h3>
-            <p className="text-sm text-muted-foreground">แสดงกำไร/ขาดทุนแยกตามแต่ละ{periodName}</p>
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6">
+          <div className="mb-4 md:mb-6">
+            <h3 className="font-semibold text-base md:text-lg">Profit / Loss ({timeframe})</h3>
+            <p className="text-xs md:text-sm text-muted-foreground">แสดงกำไร/ขาดทุนแยกตามแต่ละ{periodName}</p>
           </div>
           
-          <div className="h-[400px] w-full">
+          <div className="h-[250px] md:h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={true} opacity={0.3} />
                 <XAxis 
                   dataKey="date" 
                   axisLine={false}
                   tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={8}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={5}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                   tickFormatter={(val) => `$${val}`}
                 />
                 <Tooltip 
@@ -273,17 +273,17 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
         </div>
 
         {/* Growth Chart (Cumulative) */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg">Cumulative Profit Growth</h3>
-            <p className="text-sm text-muted-foreground">แสดงกำไร/ขาดทุนสะสมตั้งแต่จุดเริ่มต้น</p>
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6">
+          <div className="mb-4 md:mb-6">
+            <h3 className="font-semibold text-base md:text-lg">Cumulative Profit Growth</h3>
+            <p className="text-xs md:text-sm text-muted-foreground">แสดงกำไร/ขาดทุนสะสมตั้งแต่จุดเริ่มต้น</p>
           </div>
           
-          <div className="h-[400px] w-full">
+          <div className="h-[250px] md:h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                margin={{ top: 5, right: 10, left: -10, bottom: 0 }}
               >
                 <defs>
                   <linearGradient id="colorCumulative" x1="0" y1="0" x2="0" y2="1">
@@ -296,14 +296,14 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
                   dataKey="date" 
                   axisLine={false}
                   tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={8}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tickMargin={5}
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                   tickFormatter={(val) => `$${val}`}
                 />
                 <Tooltip 

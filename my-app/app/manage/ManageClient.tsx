@@ -172,12 +172,12 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
       
       <main className="flex-1 p-4 md:p-8 pt-6 max-w-7xl mx-auto w-full space-y-8">
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-2xl font-bold tracking-tight">Monthly Overview</h2>
-            
-            {/* Month Navigator */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center rounded-md border border-input bg-background">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-2xl font-bold tracking-tight">Monthly Overview</h2>
+              
+              {/* Month Navigator */}
+              <div className="flex items-center rounded-md border border-input bg-background self-start sm:self-auto">
                 <button
                   onClick={handlePrevMonth}
                   className="flex items-center justify-center h-9 w-9 text-muted-foreground hover:text-foreground transition-colors border-r"
@@ -194,11 +194,14 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
+            </div>
 
+            {/* Export Buttons - separate row on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
               <button
                 onClick={handleExportMonthly}
                 disabled={isExporting}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 <Download className="h-4 w-4" />
                 {isExporting ? "Exporting..." : "Export Month"}
@@ -206,7 +209,7 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
               <button
                 onClick={handleExportYearly}
                 disabled={isExporting}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 {isExporting ? "Exporting..." : "Export Year"}

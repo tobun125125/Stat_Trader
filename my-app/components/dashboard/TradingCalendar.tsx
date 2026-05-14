@@ -29,7 +29,8 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
     end: endDate
   });
 
-  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekDaysFull = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekDaysShort = ["M", "T", "W", "T", "F", "S", "S"];
 
   // Fix #13: ใช้ Map สำหรับ O(1) lookup แทน .find() ที่เป็น O(n) ต่อวัน
   const statsMap = useMemo(() => {
@@ -41,9 +42,10 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
   return (
     <div className="rounded-xl border bg-card shadow overflow-hidden">
       <div className="grid grid-cols-7 border-b bg-muted/50">
-        {weekDays.map((day) => (
-          <div key={day} className="py-3 text-center text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {day}
+        {weekDaysFull.map((day, i) => (
+          <div key={day} className="py-2 md:py-3 text-center text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span className="hidden sm:inline">{day}</span>
+            <span className="sm:hidden">{weekDaysShort[i]}</span>
           </div>
         ))}
       </div>
@@ -78,7 +80,7 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
             <div 
               key={day.toString()} 
               className={cn(
-                "min-h-[120px] p-2 border-r border-b relative group transition-colors",
+                "min-h-[72px] md:min-h-[120px] p-1 md:p-2 border-r border-b relative group transition-colors",
                 !isCurrentMonth && "opacity-40 bg-muted/30",
                 bgColor,
                 // Remove right border for the last day of the week
@@ -87,7 +89,7 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
             >
               <div className="flex justify-between items-start">
                 <span className={cn(
-                  "text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full",
+                  "text-[10px] md:text-sm font-medium h-5 w-5 md:h-6 md:w-6 flex items-center justify-center rounded-full",
                   isCurrentDay ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 )}>
                   {format(day, dateFormat)}
@@ -95,13 +97,13 @@ export function TradingCalendar({ currentDate, dailyStats }: TradingCalendarProp
               </div>
               
               {stat && (
-                <div className="mt-2 flex flex-col h-full gap-1">
-                  <div className={cn("text-sm text-right", textColor)}>
+                <div className="mt-1 md:mt-2 flex flex-col h-full gap-1">
+                  <div className={cn("text-[10px] md:text-sm text-right truncate", textColor)}>
                     {valueText}
                   </div>
                   
                   {/* Tooltip Simulation via Group Hover */}
-                  <div className="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity bg-popover/95 text-popover-foreground text-xs p-2 rounded shadow-lg border pointer-events-none z-10 flex flex-col gap-1">
+                  <div className="absolute inset-x-1 md:inset-x-2 bottom-1 md:bottom-2 opacity-0 group-hover:opacity-100 transition-opacity bg-popover/95 text-popover-foreground text-[10px] md:text-xs p-1.5 md:p-2 rounded shadow-lg border pointer-events-none z-10 hidden sm:flex flex-col gap-1">
                     <div className="font-semibold">{format(day, "MMM do, yyyy")}</div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Trades:</span>

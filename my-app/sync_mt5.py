@@ -1,3 +1,4 @@
+import importlib
 import MetaTrader5 as mt5
 from datetime import datetime
 import pandas as pd
@@ -23,9 +24,10 @@ if authorized:
     from datetime import timedelta
     from supabase import create_client, Client
     import os
+    import time
 
     # ตั้งค่าเชื่อมต่อ Supabase
-    import os
+    # pyrefly: ignore [missing-import]
     from dotenv import load_dotenv
 
     # โหลดค่าจากไฟล์ .env.local
@@ -41,48 +43,52 @@ if authorized:
         quit()
 
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    # ดึงประวัติย้อนหลัง 30 วัน
-    date_to = datetime.now()
-    date_from = date_to - timedelta(days=30)
     
-    # ดึงประวัติการปิดออเดอร์ (Deals)
-    deals = mt5.history_deals_get(date_from, date_to)
+    print("เริ่มระบบ Real-time Sync (อัปเดตทุกๆ 60 วินาที)...")
+    print("กด Ctrl+C เพื่อหยุดการทำงาน")
     
-    if deals is None:
-        print("❌ ไม่พบประวัติการเทรด หรือ ดึงข้อมูลผิดพลาด")
-    elif len(deals) > 0:
-        print(f"พบประวัติการเทรดจำนวน: {len(deals)} รายการ")
-        
-        data_to_insert = []
-        for deal in deals:
-            # คัดลอกเฉพาะ Deal ที่เป็นการปิดออเดอร์จริงๆ (มีกำไร/ขาดทุน) 
-            # DEAL_ENTRY_OUT คือการปิดออเดอร์ (entry = 1)
-            if deal.entry == 1: 
-                data = {
-                    "user_id": str(login_id), # ใช้เลขพอร์ต (String) เป็น ID เลยตามฐานข้อมูลใหม่
-                    "ticket": deal.ticket,
-                    "symbol": deal.symbol,
-                    "trade_type": deal.type, # 0 = Buy, 1 = Sell
-                    "volume": deal.volume,
-                    "commission": deal.commission,
-                    "swap": deal.swap,
-                    "profit": deal.profit,
-                    "net_profit": deal.profit + deal.swap + deal.commission,
-                    "close_time": datetime.fromtimestamp(deal.time).strftime('%Y-%m-%d %H:%M:%S')
-                }
-                data_to_insert.append(data)
-                
-        # ส่งข้อมูลเข้า Supabase (Upsert)
-        if len(data_to_insert) > 0:
-            print(f"กำลังส่งข้อมูล {len(data_to_insert)} รายการขึ้น Supabase...")
-            try:
-                response = supabase.table("trading_deals").upsert(data_to_insert, on_conflict="ticket").execute()
-                print("✅ บันทึกข้อมูลสำเร็จ!")
-            except Exception as e:
-                print(f"❌ เกิดข้อผิดพลาดในการส่งข้อมูล: {e}")
-        else:
-            print("ไม่มีออเดอร์ที่ถูกปิดในช่วงเวลานี้")
+    try:
+        while True:
+            # ดึงประวัติย้อนหลัง 3 วัน (เพื่อไม่ให้หนักเกินไปเวลารันแบบ Real-time)
+            date_to = datetime.now()
+            date_from = date_to - timedelta(days=3)
             
+            deals = mt5.history_deals_get(date_from, date_to)
+            
+            if deals is None:
+                pass # เงียบไว้เวลารันลูป
+            elif len(deals) > 0:
+                data_to_insert = []
+                for deal in deals:
+                    # DEAL_ENTRY_OUT คือการปิดออเดอร์ (entry = 1)
+                    if deal.entry == 1: 
+                        data = {
+                            "user_id": str(login_id),
+                            "ticket": deal.ticket,
+                            "symbol": deal.symbol,
+                            "trade_type": deal.type,
+                            "volume": deal.volume,
+                            "commission": deal.commission,
+                            "swap": deal.swap,
+                            "profit": deal.profit,
+                            "net_profit": deal.profit + deal.swap + deal.commission,
+                            "close_time": datetime.fromtimestamp(deal.time).strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        data_to_insert.append(data)
+                        
+                if len(data_to_insert) > 0:
+                    try:
+                        supabase.table("trading_deals").upsert(data_to_insert, on_conflict="ticket").execute()
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] อัปเดตข้อมูลล่าสุด {len(data_to_insert)} รายการ")
+                    except Exception as e:
+                        print(f"❌ Error: {e}")
+            
+            # รอ 60 วินาทีแล้วทำงานใหม่
+            time.sleep(60)
+            
+    except KeyboardInterrupt:
+        print("\nหยุดการทำงาน Real-time Sync")
+
 else:
     print(f"❌ Login ไม่สำเร็จ, Error: {mt5.last_error()}")
 

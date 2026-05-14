@@ -3,6 +3,8 @@
 import { useState, useMemo } from "react";
 import { DailyTradingStat, MonthlyTradingStat } from "@/types/supabase";
 import {
+  LineChart,
+  Line,
   AreaChart,
   Area,
   XAxis,
@@ -85,32 +87,40 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
 
   }, [dailyStats, allMonthlyStats, timeframe]);
 
-  // Compute stats that actually change per timeframe
+  // Compute overall stats for the selected timeframe
   const overallStats = useMemo(() => {
     let totalTrades = 0;
     let totalWins = 0;
     let totalProfit = 0;
-    let bestProfit = -Infinity;
-    let bestLabel = "";
-    let worstProfit = Infinity;
-    let worstLabel = "";
 
     chartData.forEach(d => {
       totalTrades += d.trades;
       totalWins += d.wins;
       totalProfit += d.profit;
-      if (d.profit > bestProfit) { bestProfit = d.profit; bestLabel = d.date; }
-      if (d.profit < worstProfit) { worstProfit = d.profit; worstLabel = d.date; }
     });
 
-    const winRate = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
     const periodCount = chartData.length;
     const avgProfit = periodCount > 0 ? totalProfit / periodCount : 0;
 
-    return { totalTrades, totalWins, totalProfit, winRate, periodCount, avgProfit, bestProfit, bestLabel, worstProfit, worstLabel };
+    return { totalProfit, avgProfit };
   }, [chartData]);
 
-  const isPositive = overallStats.totalProfit >= 0;
+  // Extract the latest period's data to show current performance
+  const latestStats = useMemo(() => {
+    if (chartData.length === 0) return null;
+    const latest = chartData[chartData.length - 1]; // The most recent day/month/year
+    const winRate = latest.trades > 0 ? (latest.wins / latest.trades) * 100 : 0;
+    return {
+      date: latest.date,
+      profit: latest.profit,
+      trades: latest.trades,
+      wins: latest.wins,
+      winRate
+    };
+  }, [chartData]);
+
+  const isPositiveLatest = latestStats ? latestStats.profit >= 0 : false;
+  const isPositiveTotal = overallStats.totalProfit >= 0;
   const periodName = timeframe === "Daily" ? "วัน" : timeframe === "Monthly" ? "เดือน" : "ปี";
   const periodNameEn = timeframe === "Daily" ? "days" : timeframe === "Monthly" ? "months" : "years";
 
@@ -138,84 +148,132 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
           </div>
         </div>
 
-        {/* Stats Cards — 5 cards with timeframe-specific data */}
+        {/* Stats Cards — 5 cards showing Latest Period + Overall Stats */}
         <div className="grid gap-4 md:grid-cols-5">
-          {/* Total Net Profit */}
+          {/* Latest Profit */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 bg-primary/10 text-primary text-[10px] font-bold rounded-bl-lg">LATEST</div>
+            <div className="flex items-center justify-between">
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไร/ขาดทุน ({periodName})</h3>
+              {isPositiveLatest ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
+            </div>
+            <div className={`text-2xl font-bold ${isPositiveLatest ? 'text-green-500' : 'text-red-500'}`}>
+              {latestStats ? `$${latestStats.profit.toFixed(2)}` : "$0.00"}
+            </div>
+            <p className="text-xs text-muted-foreground truncate" title={latestStats?.date}>
+              ข้อมูลล่าสุด: {latestStats?.date || "-"}
+            </p>
+          </div>
+
+          {/* Latest Win Rate */}
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Total Net Profit</h3>
-              {isPositive ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Win Rate ({periodName})</h3>
+              <Target className="h-4 w-4 text-blue-500" />
             </div>
-            <div className={`text-2xl font-bold ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+            <div className="text-2xl font-bold text-blue-500">
+              {latestStats ? `${latestStats.winRate.toFixed(2)}%` : "0.00%"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {latestStats ? `${latestStats.wins} wins / ${latestStats.trades} trades` : "No data"}
+            </p>
+          </div>
+
+          {/* Latest Trades */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">จำนวนเทรด ({periodName})</h3>
+              <Activity className="h-4 w-4 text-purple-500" />
+            </div>
+            <div className="text-2xl font-bold text-purple-500">
+              {latestStats?.trades || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Executed trades
+            </p>
+          </div>
+
+          {/* Cumulative Profit (All Time) */}
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไรสะสมทั้งหมด (Total)</h3>
+              {isPositiveTotal ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
+            </div>
+            <div className={`text-2xl font-bold ${isPositiveTotal ? 'text-green-500' : 'text-red-500'}`}>
               ${overallStats.totalProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              จาก {overallStats.periodCount} {periodName} ({periodNameEn})
+              จากทุก{periodName}ในกราฟ
             </p>
           </div>
 
           {/* Avg Profit per Period */}
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">เฉลี่ย/{periodName}</h3>
+              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">กำไรเฉลี่ย/{periodName}</h3>
               {overallStats.avgProfit >= 0 ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-rose-500" />}
             </div>
             <div className={`text-2xl font-bold ${overallStats.avgProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               ${overallStats.avgProfit.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Avg per {timeframe === "Daily" ? "day" : timeframe === "Monthly" ? "month" : "year"}
-            </p>
-          </div>
-
-          {/* Win Rate */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">Win Rate</h3>
-              <Target className="h-4 w-4 text-blue-500" />
-            </div>
-            <div className="text-2xl font-bold text-blue-500">
-              {overallStats.winRate.toFixed(2)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {overallStats.totalWins} wins / {overallStats.totalTrades} trades
-            </p>
-          </div>
-
-          {/* Best Period */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">{periodName}ที่ดีที่สุด</h3>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </div>
-            <div className="text-2xl font-bold text-green-500">
-              {overallStats.bestProfit === -Infinity ? "$0.00" : `$${overallStats.bestProfit.toFixed(2)}`}
-            </div>
-            <p className="text-xs text-muted-foreground truncate" title={overallStats.bestLabel}>
-              {overallStats.bestLabel || "-"}
-            </p>
-          </div>
-
-          {/* Worst Period */}
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="tracking-tight text-sm font-medium text-muted-foreground">{periodName}ที่แย่ที่สุด</h3>
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            </div>
-            <div className="text-2xl font-bold text-red-500">
-              {overallStats.worstProfit === Infinity ? "$0.00" : `$${overallStats.worstProfit.toFixed(2)}`}
-            </div>
-            <p className="text-xs text-muted-foreground truncate" title={overallStats.worstLabel}>
-              {overallStats.worstLabel || "-"}
+              Average per {periodName === "วัน" ? "day" : periodName === "เดือน" ? "month" : "year"}
             </p>
           </div>
         </div>
 
-        {/* Growth Chart */}
+
+        {/* Area Chart (Individual PnL) */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
+          <div className="mb-6">
+            <h3 className="font-semibold text-lg">Profit / Loss ({timeframe})</h3>
+            <p className="text-sm text-muted-foreground">แสดงกำไร/ขาดทุนแยกตามแต่ละ{periodName}</p>
+          </div>
+          
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={true} opacity={0.3} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                  tickFormatter={(val) => `$${val}`}
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Net Profit"]}
+                />
+                <Line 
+                  type="linear" 
+                  dataKey="profit" 
+                  stroke="#0ea5e9"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: "hsl(var(--background))", strokeWidth: 2, stroke: "#0ea5e9" }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: "#0ea5e9" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Growth Chart (Cumulative) */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
           <div className="mb-6">
             <h3 className="font-semibold text-lg">Cumulative Profit Growth</h3>
-            <p className="text-sm text-muted-foreground">Visualizing your profit accumulation over time</p>
+            <p className="text-sm text-muted-foreground">แสดงกำไร/ขาดทุนสะสมตั้งแต่จุดเริ่มต้น</p>
           </div>
           
           <div className="h-[400px] w-full">
@@ -226,8 +284,8 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
               >
                 <defs>
                   <linearGradient id="colorCumulative" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.5}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -254,60 +312,12 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
                 <Area 
                   type="monotone" 
                   dataKey="cumulative" 
-                  stroke="#8884d8" 
+                  stroke="#8b5cf6" 
                   strokeWidth={3}
                   fillOpacity={1} 
                   fill="url(#colorCumulative)" 
                 />
               </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Bar Chart (Individual PnL) */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg">{timeframe} Net Profit</h3>
-            <p className="text-sm text-muted-foreground">Profit or loss for each individual period</p>
-          </div>
-          
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tickMargin={10}
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  tickFormatter={(val) => `$${val}`}
-                />
-                <Tooltip 
-                  cursor={{ fill: 'hsl(var(--muted)/0.3)' }}
-                  contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Net Profit"]}
-                />
-                <Bar 
-                  dataKey="profit" 
-                  radius={[4, 4, 0, 0]}
-                >
-                  {
-                    chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.profit >= 0 ? '#22c55e' : '#ef4444'} />
-                    ))
-                  }
-                </Bar>
-              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

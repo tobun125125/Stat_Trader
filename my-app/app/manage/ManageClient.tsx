@@ -8,8 +8,9 @@ import { TradingCalendar } from "@/components/dashboard/TradingCalendar";
 import { DailyTradingStat, MonthlyTradingStat } from "@/types/supabase";
 import { AlertModal } from "@/components/ui/AlertModal";
 import { MonthYearPicker } from "@/components/ui/MonthYearPicker";
-import { Download, FileSpreadsheet, ArrowLeft, ArrowRight } from "lucide-react";
+import { Download, ArrowLeft, ArrowRight } from "lucide-react";
 import { applyWorksheetStyling, TRADING_SUMMARY_COLUMNS, YEARLY_SUMMARY_COLUMNS } from "@/lib/exportExcel";
+import { createClient } from "@/utils/supabase/client";
 
 interface ManageClientProps {
   initialDate: Date;
@@ -17,6 +18,13 @@ interface ManageClientProps {
   monthlyStats: MonthlyTradingStat | null;
   yearlyMonthlyStats: MonthlyTradingStat[];
 }
+
+const THAI_MONTH_NAMES: Record<string, string> = {
+  '01': 'มกราคม', '02': 'กุมภาพันธ์', '03': 'มีนาคม',
+  '04': 'เมษายน', '05': 'พฤษภาคม', '06': 'มิถุนายน',
+  '07': 'กรกฎาคม', '08': 'สิงหาคม', '09': 'กันยายน',
+  '10': 'ตุลาคม', '11': 'พฤศจิกายน', '12': 'ธันวาคม',
+};
 
 export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMonthlyStats }: ManageClientProps) {
   const router = useRouter();
@@ -43,63 +51,7 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
     return () => clearInterval(interval);
   }, [router]);
 
-  const handleExportMonthly = async () => {
-    setIsExporting(true);
-    try {
-      if (!dailyStats || dailyStats.length === 0) {
-        setModalMessage("ไม่มีข้อมูลให้ Export ในเดือนนี้ครับ");
-        setIsExporting(false);
-        return;
-      }
-
-      const monthStr = format(currentDate, "yyyy-MM");
-
-      const ExcelJS = await import('exceljs');
-      const { saveAs } = await import('file-saver');
-
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Trading Summary');
-
-      worksheet.columns = TRADING_SUMMARY_COLUMNS;
-
-      const headerRow = worksheet.getRow(1);
-      headerRow.height = 25;
-
-      dailyStats.forEach(stat => {
-        worksheet.addRow({
-          date: stat.trade_date,
-          trades: stat.total_trades,
-          wins: stat.win_trades,
-          winRate: stat.win_rate_percent / 100, 
-          profit: Number(stat.daily_profit.toFixed(2))
-        });
-      });
-
-      if (monthlyStats) {
-        worksheet.addRow({
-          date: 'สรุปผลรวมทั้งเดือน (Total)',
-          trades: monthlyStats.total_trades,
-          wins: monthlyStats.win_trades,
-          winRate: monthlyStats.win_rate_percent / 100,
-          profit: Number(monthlyStats.monthly_profit.toFixed(2))
-        });
-      }
-
-      applyWorksheetStyling(worksheet);
-
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `trading_summary_${monthStr}.xlsx`);
-      
-    } catch (error) {
-      console.error(error);
-      setModalMessage("เกิดข้อผิดพลาดในการ Export ข้อมูล (อาจจะยังไม่ได้ลง Plugin โปรดดูคำแนะนำ)");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportYearly = async () => {
+  const handleExport = async () => {
     setIsExporting(true);
     try {
       if (!yearlyMonthlyStats || yearlyMonthlyStats.length === 0) {
@@ -112,14 +64,61 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
 
       const ExcelJS = await import('exceljs');
       const { saveAs } = await import('file-saver');
+      const supabase = createClient();
 
       const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet(`Yearly Summary ${yearStr}`);
 
-      worksheet.columns = YEARLY_SUMMARY_COLUMNS;
+      // ──────────────────────────────────────────────
+      // 1. Create one sheet per month with daily details
+      // ──────────────────────────────────────────────
+      for (const monthlyStat of yearlyMonthlyStats) {
+        const monthKey = monthlyStat.trade_month; // e.g. "2026-05"
+        const mm = monthKey.substring(5, 7);      // e.g. "05"
+        const thaiName = THAI_MONTH_NAMES[mm] || monthKey;
+        const sheetName = `${thaiName} (${monthKey})`;
 
-      const headerRow = worksheet.getRow(1);
-      headerRow.height = 25;
+        // Fetch daily stats for this month
+        const { data: dailyData } = await supabase
+          .from("daily_trading_stats")
+          .select("*")
+          .like("trade_date", `${monthKey}-%`)
+          .order("trade_date", { ascending: true });
+
+        const ws = workbook.addWorksheet(sheetName);
+        ws.columns = TRADING_SUMMARY_COLUMNS;
+        ws.getRow(1).height = 25;
+
+        // Add daily rows
+        if (dailyData && dailyData.length > 0) {
+          dailyData.forEach((stat: DailyTradingStat) => {
+            ws.addRow({
+              date: stat.trade_date,
+              trades: stat.total_trades,
+              wins: stat.win_trades,
+              winRate: stat.win_rate_percent / 100,
+              profit: Number(stat.daily_profit.toFixed(2))
+            });
+          });
+        }
+
+        // Add monthly summary row
+        ws.addRow({
+          date: `สรุปผลรวมเดือน${thaiName} (Total)`,
+          trades: monthlyStat.total_trades,
+          wins: monthlyStat.win_trades,
+          winRate: monthlyStat.win_rate_percent / 100,
+          profit: Number(monthlyStat.monthly_profit.toFixed(2))
+        });
+
+        applyWorksheetStyling(ws);
+      }
+
+      // ──────────────────────────────────────────────
+      // 2. Create yearly summary sheet
+      // ──────────────────────────────────────────────
+      const summaryWs = workbook.addWorksheet(`สรุปรวมปี ${yearStr}`);
+      summaryWs.columns = YEARLY_SUMMARY_COLUMNS;
+      summaryWs.getRow(1).height = 25;
 
       let totalTrades = 0;
       let totalWins = 0;
@@ -130,18 +129,21 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
         totalWins += stat.win_trades;
         totalProfit += stat.monthly_profit;
 
-        worksheet.addRow({
-          month: stat.trade_month,
+        const mm = stat.trade_month.substring(5, 7);
+        const thaiName = THAI_MONTH_NAMES[mm] || stat.trade_month;
+
+        summaryWs.addRow({
+          month: `${thaiName} (${stat.trade_month})`,
           trades: stat.total_trades,
           wins: stat.win_trades,
-          winRate: stat.win_rate_percent / 100, 
+          winRate: stat.win_rate_percent / 100,
           profit: Number(stat.monthly_profit.toFixed(2))
         });
       });
 
-      // Add Yearly Summary Row
+      // Grand total row
       const overallWinRate = totalTrades > 0 ? (totalWins / totalTrades) : 0;
-      worksheet.addRow({
+      summaryWs.addRow({
         month: `สรุปผลรวมทั้งปี ${yearStr} (Year Total)`,
         trades: totalTrades,
         wins: totalWins,
@@ -149,12 +151,15 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
         profit: Number(totalProfit.toFixed(2))
       });
 
-      applyWorksheetStyling(worksheet);
+      applyWorksheetStyling(summaryWs);
 
+      // ──────────────────────────────────────────────
+      // 3. Save the file
+      // ──────────────────────────────────────────────
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, `trading_summary_yearly_${yearStr}.xlsx`);
-      
+      saveAs(blob, `trading_summary_${yearStr}.xlsx`);
+
     } catch (error) {
       console.error(error);
       setModalMessage("เกิดข้อผิดพลาดในการ Export ข้อมูล (อาจจะยังไม่ได้ลง Plugin โปรดดูคำแนะนำ)");
@@ -196,23 +201,15 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
               </div>
             </div>
 
-            {/* Export Buttons - separate row on mobile */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+            {/* Export Button */}
+            <div className="flex sm:justify-end">
               <button
-                onClick={handleExportMonthly}
+                onClick={handleExport}
                 disabled={isExporting}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 <Download className="h-4 w-4" />
-                {isExporting ? "Exporting..." : "Export Month"}
-              </button>
-              <button
-                onClick={handleExportYearly}
-                disabled={isExporting}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                {isExporting ? "Exporting..." : "Export Year"}
+                {isExporting ? "Exporting..." : `Export Excel ${format(currentDate, "yyyy")}`}
               </button>
             </div>
           </div>

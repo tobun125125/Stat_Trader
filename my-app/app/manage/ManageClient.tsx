@@ -209,7 +209,7 @@ export function ManageClient({ initialDate, dailyStats, monthlyStats, yearlyMont
                 className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 <Download className="h-4 w-4" />
-                {isExporting ? "Exporting..." : `Export Excel ${format(currentDate, "yyyy")}`}
+                {isExporting ? "Exporting..." : <><span className="sm:hidden">Export {format(currentDate, "yyyy")}</span><span className="hidden sm:inline">Export Excel {format(currentDate, "yyyy")}</span></>}
               </button>
             </div>
           </div>

@@ -149,7 +149,7 @@ export function NewDashboardClient({ dailyStats, allMonthlyStats }: NewDashboard
         </div>
 
         {/* Stats Cards — 5 cards showing Latest Period + Overall Stats */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-3 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 sm:grid-cols-2 md:grid-cols-5">
           {/* Latest Profit */}
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-4 md:p-6 flex flex-col gap-1.5 md:gap-2 relative overflow-hidden col-span-2 sm:col-span-1">
             <div className="absolute top-0 right-0 p-2 bg-primary/10 text-primary text-[10px] font-bold rounded-bl-lg">LATEST</div>

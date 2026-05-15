@@ -32,7 +32,7 @@ if authorized:
     print(f"✅ เข้าสู่ระบบสำเร็จ! Account: {login_id}")
     
     # ---------------------------------------------------------
-    from datetime import timedelta
+    from datetime import timedelta, timezone
     from supabase import create_client, Client
     import time
 
@@ -54,9 +54,9 @@ if authorized:
     
     try:
         while True:
-            # ดึงประวัติย้อนหลัง 3 วัน (เพื่อไม่ให้หนักเกินไปเวลารันแบบ Real-time)
+            # ดึงประวัติย้อนหลัง 30 วัน (เผื่อกรณี Timezone offset ทำให้ดึงข้อมูลไม่ครบ)
             date_to = datetime.now()
-            date_from = date_to - timedelta(days=3)
+            date_from = date_to - timedelta(days=30)
             
             deals = mt5.history_deals_get(date_from, date_to)
             
@@ -77,7 +77,7 @@ if authorized:
                             "swap": deal.swap,
                             "profit": deal.profit,
                             "net_profit": deal.profit + deal.swap + deal.commission,
-                            "close_time": datetime.fromtimestamp(deal.time).strftime('%Y-%m-%d %H:%M:%S')
+                            "close_time": datetime.fromtimestamp(deal.time, tz=timezone.utc).isoformat()
                         }
                         data_to_insert.append(data)
                         

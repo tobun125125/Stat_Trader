@@ -15,3 +15,16 @@ export type MonthlyTradingStat = {
   win_trades: number;
   win_rate_percent: number;
 };
+
+export type TradingDeal = {
+  user_id: string;
+  ticket: number;
+  symbol: string;
+  trade_type: number;
+  volume: number;
+  commission: number;
+  swap: number;
+  profit: number;
+  net_profit: number;
+  close_time: string;
+};

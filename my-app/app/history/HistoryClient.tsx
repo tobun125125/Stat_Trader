@@ -45,8 +45,8 @@ function formatThaiDate(dateStr: string): string {
 }
 
 function tradeTypeLabel(type?: number): string {
-  if (type === 0) return "Buy";
-  if (type === 1) return "Sell";
+  if (type === 1) return "Buy";
+  if (type === 0) return "Sell";
   return "-";
 }
 
@@ -477,7 +477,7 @@ export function HistoryClient() {
                               </td>
                               <td className="p-3 md:p-4 text-center text-xs md:text-sm">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  row.type === 0
+                                  row.type === 1
                                     ? 'bg-emerald-500/10 text-emerald-500'
                                     : 'bg-rose-500/10 text-rose-500'
                                 }`}>
